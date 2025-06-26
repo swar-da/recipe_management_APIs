@@ -47,17 +47,27 @@ class RecipeRead(RecipeBase):
     created_at: datetime
     updated_at: datetime
     owner_id: UUID
+    
+class RecipeUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
 
 # ------------------ Ingredient Schemas ------------------
 
 class RecipeIngredientBase(BaseModel):
+    ingredient_id: UUID
     name: str
     quantity: str
-    description: Optional[str] = None
+    recipe_id: UUID
+    created_at: datetime
+    updated_at: datetime
+class Config:
+    orm_mode=True 
 
-class RecipeIngredientCreate(RecipeIngredientBase):
-    pass
-
+class RecipeIngredientCreate(BaseModel):
+    name: str
+    quantity: str
+    
 class RecipeIngredientRead(RecipeIngredientBase):
     ingredient_id: UUID
     recipe_id: UUID

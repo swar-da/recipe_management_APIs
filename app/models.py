@@ -32,8 +32,7 @@ class Recipe(base):
     recipe_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    status = Column(Boolean, default=False)
-
+    status = Column(Boolean, nullable=False)
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
     owner = relationship("User", back_populates="recipes")
 

@@ -1,15 +1,17 @@
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from uuid import UUID
 from app.models import User, Recipe, RecipeIngredient, RecipeStep
 from app.schemas import UserCreate, RecipeCreate, RecipeIngredientCreate, RecipeStepCreate
 import uuid
+from app import models
 from passlib.context import CryptContext
 from app.security import get_password_hash
 
 # ---------------------- User CRUD ----------------------
 async def create_user(db: AsyncSession, user: UserCreate):
-    hashed_password = get_password_hash(user.password)  # ✅ hash password
+    hashed_password = get_password_hash(user.password)  
 
     new_user = User(
         user_id=uuid.uuid4(),
@@ -49,34 +51,57 @@ async def get_recipe_by_id(db: AsyncSession, recipe_id: UUID):
     return result.scalar_one_or_none()
 
 async def update_recipe(db: AsyncSession, recipe_id: UUID, updated_data: RecipeCreate):
-    recipe = await get_recipe_by_id(db, recipe_id)
-    if recipe:
-        recipe.title = updated_data.title
-        recipe.description = updated_data.description
-        recipe.status = updated_data.status
-        await db.commit()
-        await db.refresh(recipe)
+    query = select(Recipe).where(Recipe.recipe_id == recipe_id)
+    result = await db.execute(query)
+    db_recipe = result.scalar_one_or_none()
+    if not db_recipe:
+        return None
+    
+    update_recipe = updated_data.dict(exclude_unset=True)
+    for key, value in update_recipe.items():
+        setattr(db_recipe, key, value)
+
+    await db.commit()
+    await db.refresh(db_recipe)
+    return db_recipe
+
+
+async def delete_recipe(db, recipe_id, user_id):
+    recipe = db.query(models.Recipe).filter(
+        models.Recipe.recipe_id == recipe_id,
+        models.Recipe.owner_id == user_id
+    ).first()
+
+    if not recipe:
+        return None
+
+    db.delete(recipe)
+    db.commit()
     return recipe
 
-async def delete_recipe(db: AsyncSession, recipe_id: UUID):
-    recipe = await get_recipe_by_id(db, recipe_id)
-    if recipe:
-        await db.delete(recipe)
-        await db.commit()
-    return recipe
 
 # ---------------------- Ingredient CRUD ----------------------
-async def add_ingredient(db: AsyncSession, ingredient: RecipeIngredientCreate, recipe_id: UUID):
-    new_ingredient = RecipeIngredient(
-        ingredient_id=uuid.uuid4(),
+from sqlalchemy import select
+from sqlalchemy.exc import NoResultFound
+
+async def add_ingredient(db: AsyncSession, ingredient: RecipeIngredientCreate, recipe_id: UUID, user_id: int):
+    stmt = select(models.Recipe).where(
+        models.Recipe.recipe_id == recipe_id,
+        models.Recipe.owner_id == user_id
+    )
+
+    result = (await db.execute(stmt)).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Recipe not found or unauthorized")
+
+    new_ingredient = models.RecipeIngredient(
         name=ingredient.name,
         quantity=ingredient.quantity,
-        description=ingredient.description,
         recipe_id=recipe_id
     )
     db.add(new_ingredient)
-    await db.commit()
-    await db.refresh(new_ingredient)
+    db.commit()
+    db.refresh(new_ingredient)
     return new_ingredient
 
 async def get_ingredients_for_recipe(db: AsyncSession, recipe_id: UUID):

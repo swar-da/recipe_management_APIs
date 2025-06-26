@@ -5,10 +5,11 @@ from typing import List
 from app.database import get_db
 from app import crud, schemas
 from app.schemas import UserCreate, UserOut, Token
-from app.models import User
+from app.models import User, RecipeIngredient
 from app.auth.token import hash_password, verify_password, create_access_token
 from app.auth.dependencies import get_current_user
-
+from app.database import get_db
+from app import models
 router = APIRouter()
 
 # ---------------------- User Routes ----------------------
@@ -40,7 +41,7 @@ async def create_recipe(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return await crud.create_recipe(db, recipe, current_user.id)
+    return await crud.create_recipe(db, recipe, current_user.user_id)
 
 @router.get("/recipes/", response_model=List[schemas.RecipeRead])
 async def read_all_recipes(db: AsyncSession = Depends(get_db)):
@@ -53,38 +54,48 @@ async def read_recipe(recipe_id: UUID, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipe
 
-@router.put("/recipes/{recipe_id}", response_model=schemas.RecipeRead)
+@router.patch("/recipes/{recipe_id}", response_model=schemas.RecipeRead)
 async def update_recipe(
     recipe_id: UUID,
-    recipe: schemas.RecipeCreate,
+    recipe_update: schemas.RecipeUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    updated = await crud.update_recipe(db, recipe_id, recipe, current_user.id)
+    updated = await crud.update_recipe(db, recipe_id, recipe_update)
     if not updated:
         raise HTTPException(status_code=404, detail="Recipe not found or unauthorized")
     return updated
 
-@router.delete("/recipes/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/recipes/{recipe_id}")
 async def delete_recipe(
     recipe_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    deleted = await crud.delete_recipe(db, recipe_id, current_user.id)
+    deleted = await crud.delete_recipe(db, recipe_id, current_user.user_id)
+
     if not deleted:
-        raise HTTPException(status_code=404, detail="Recipe not found or unauthorized")
-    return None
+        raise HTTPException(status_code=404, detail="Recipe not found or not authorized to delete")
+
+    return {"message": "Recipe deleted successfully"}
+
 
 # ---------------------- Ingredient Routes ----------------------
-@router.post("/recipes/{recipe_id}/ingredients/", response_model=schemas.RecipeIngredientRead)
-async def add_ingredient(
+@router.post("/recipes/{recipe_id}/ingredients/", response_model=schemas.RecipeIngredientCreate)
+async def add_ingredient_to_recipe(
     recipe_id: UUID,
     ingredient: schemas.RecipeIngredientCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db)
 ):
-    return await crud.add_ingredient(db, ingredient, recipe_id, current_user.id)
+    new_ingredient = models.RecipeIngredient(
+        name=ingredient.name,
+        quantity=ingredient.quantity,
+        recipe_id=recipe_id,
+    )
+    db.add(new_ingredient)
+    db.commit()
+    db.refresh(new_ingredient)
+    return new_ingredient
 
 @router.get("/recipes/{recipe_id}/ingredients/", response_model=List[schemas.RecipeIngredientRead])
 async def get_ingredients(recipe_id: UUID, db: AsyncSession = Depends(get_db)):
@@ -98,7 +109,7 @@ async def add_step(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return await crud.add_step(db, step, recipe_id, current_user.id)
+    return await crud.add_step(db, step, recipe_id)
 
 @router.get("/recipes/{recipe_id}/steps/", response_model=List[schemas.RecipeStepRead])
 async def get_steps(recipe_id: UUID, db: AsyncSession = Depends(get_db)):
