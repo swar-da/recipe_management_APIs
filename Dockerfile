@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the whole project
-COPY . .
+COPY . /app
 
 # Expose FastAPI default port
 EXPOSE 8000
