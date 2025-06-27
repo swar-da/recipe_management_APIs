@@ -3,8 +3,6 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
-# ------------------ User Schemas ------------------
-
 class UserBase(BaseModel):
     email: EmailStr
     user_name: str
@@ -28,13 +26,11 @@ class UserOut(BaseModel):
     class Config:
         from_attributes = True
 
-# ------------------ Auth Token ------------------
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-# ------------------ Recipe Schemas ------------------
 
 class RecipeBase(BaseModel):
     title: str
@@ -54,7 +50,7 @@ class RecipeUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
 
-# ------------------ Ingredient Schemas ------------------
+
 
 class RecipeIngredientBase(BaseModel):
     ingredient_id: UUID
@@ -77,7 +73,6 @@ class RecipeIngredientRead(RecipeIngredientBase):
     created_at: datetime
     updated_at: datetime
 
-# ------------------ Step Schemas ------------------
 
 class RecipeStepBase(BaseModel):
     description: str

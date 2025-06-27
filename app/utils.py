@@ -8,7 +8,7 @@ import secrets
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT config (you can move these to a config/env file)
-SECRET_KEY = secrets.token_hex(32)  # Use a fixed key in production
+SECRET_KEY = secrets.token_hex(32)  
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
