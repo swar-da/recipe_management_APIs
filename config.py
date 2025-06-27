@@ -5,11 +5,13 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
-    POSTGRES_HOST: str = "localhost"
+    POSTGRES_HOST: str 
     DATABASE_URL:str
-    POSTGRES_PORT: int = 5432  
+    POSTGRES_PORT: int 
+    HOST:str
+    PORT:str
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
+    model_config = SettingsConfigDict(env_file=".env")
 
     @property
     def POSTGRES_URL(self) -> str:
