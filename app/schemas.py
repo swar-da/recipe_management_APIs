@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     class Config:
         from_attributes = True
 
+
 class UserCreate(UserBase):
     email:EmailStr
     password:str
@@ -25,7 +26,8 @@ class UserOut(BaseModel):
     id: int
     email: EmailStr
     class Config:
-        orm_mode = True
+        from_attributes = True
+
 # ------------------ Auth Token ------------------
 
 class Token(BaseModel):
@@ -62,7 +64,8 @@ class RecipeIngredientBase(BaseModel):
     created_at: datetime
     updated_at: datetime
 class Config:
-    orm_mode=True 
+    from_attributes = True
+
 
 class RecipeIngredientCreate(BaseModel):
     name: str
